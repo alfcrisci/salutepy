@@ -45,7 +45,8 @@ from ..raster.variables import standardize
 
 
 def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: bool | None = None,
-                   workers: int | None = None, solar_time_correction: bool = False) -> xr.Dataset:
+                   workers: int | None = None, solar_time_correction: bool = False,
+                   valid_time=None, r_first_step: int = 11) -> xr.Dataset:
     """
     Calcola wbgtsun, wbgtsha, tglob e tnwb (degC) per ogni passo e ogni pixel di un GRIB2 MOLOCH.
 
@@ -58,6 +59,8 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
     workers : thread di calcolo (default: tutti i processori).
     solar_time_correction : corregge l'angolo orario con longitudine ed equazione del tempo
         (HeatStress non lo fa); default False, come in R.
+    valid_time : uno o più tempi validi (UTC) da calcolare; se dato, sostituisce ``timesteps``.
+    r_first_step : con time_mode="r", il passo cdo (da 1) che nello script R è i = 1 (default 11).
     """
     if time_mode not in ("valid", "r"):
         raise ValueError("time_mode deve essere 'valid' oppure 'r'")
@@ -69,7 +72,9 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
         numba.set_num_threads(min(workers, numba.config.NUMBA_NUM_THREADS))
 
     ds = open_raster(path)
-    if "valid_time" in ds.dims and timesteps is not None:
+    if valid_time is not None:
+        ds = ds.sel(valid_time=np.atleast_1d(np.asarray(valid_time, dtype="datetime64[ns]")))
+    elif "valid_time" in ds.dims and timesteps is not None:
         first, last = timesteps
         ds = ds.isel(valid_time=slice(first - 1, last))
     std = standardize(ds)
@@ -90,9 +95,12 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
     if time_mode == "valid":
         times = vt
     else:
-        # come lo script R: as.POSIXct(dateboldate) + (i - 1) * 3600 + 1, con i = 1.. sui passi selezionati
-        run_day = np.asarray(ds["time"].values).astype("datetime64[D]").astype("datetime64[s]")
-        times = run_day + np.arange(len(vt)).astype("timedelta64[h]").astype("timedelta64[s]") + np.timedelta64(1, "s")
+        # come lo script R: as.POSIXct(dateboldate) + (i - 1) * 3600 + 1, dove i = 1 e' il passo cdo r_first_step
+        run = np.asarray(ds["time"].values).astype("datetime64[s]")
+        run_day = run.astype("datetime64[D]").astype("datetime64[s]")
+        lead_h = ((vt - run) // np.timedelta64(1, "h")).astype(int)
+        i = lead_h - (r_first_step - 1) + 1
+        times = run_day + (i - 1).astype("timedelta64[h]").astype("timedelta64[s]") + np.timedelta64(1, "s")
     times3 = np.broadcast_to(times.reshape(-1, 1, 1), t.shape)
 
     res = wbgt_liljegren(t.values, td, wind2m, solar, times3, lon2, lat2, hour=hour,

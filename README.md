@@ -414,3 +414,13 @@ CLI: `python -m salutepy.pipeline.wbgt_grib file.grb2 -o wbgt.nc -w 8 --steps 11
 - `time_mode="valid"` (default): ora valida reale di ogni step, zenit all'ora (hour=True).
 - `time_mode="r"`: riproduce esattamente lo script R (data run 00 UTC + (i-1)h, hour=FALSE); scarto da HeatStress < 1e-6 °C.
 - Output: `wbgtsun`, `wbgtsha` (0.7·Tnwb + 0.3·T), `tglob`, `tnwb`, `ta2m`, `wind2m`.
+
+### Verifica contro un NetCDF prodotto in R (`pipeline/verifica_wbgt.py`)
+
+```
+python -m salutepy.pipeline.verifica_wbgt 2026112312_mol01gfs.grb2 mol01gfs12_2026112412.nc            # come R
+python -m salutepy.pipeline.verifica_wbgt 2026112312_mol01gfs.grb2 mol01gfs12_2026112412.nc --time-mode valid
+```
+
+Dal nome del NetCDF ricava l'indice i dello script R e il passo GRIB (run 12 UTC + 10 + i - 1 ore), ricalcola
+wbgtsun/wbgtsha/tglob e stampa bias, MAE, RMSE, massimo scarto e correlazione; `-o file.nc` salva campi e differenze.
