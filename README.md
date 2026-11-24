@@ -456,3 +456,13 @@ mrt_globe con 0.15 m, e clomin/clomax con il metabolismo del primo pixel per tut
 di rBiometeo passa `M[0]`). Confronto con `mol01gfs12_2026112412.nc` di R: tutte le variabili entro 0.01
 (arrotondamento a 2 decimali), salvo 14-19 pixel di clomin/clomax (0.1, passo del clo), 1 pixel di classe UTCI
 e 2 di frostime. Circa 8.5 s per file su 2 CPU, dominati da clomin/clomax.
+
+### Tutte le ore del GRIB
+
+```
+python -m salutepy.pipeline.meteosalute_nc 2026112312_mol01gfs.grb2 -d esempio --all --time-mode valid
+```
+
+`--all` elabora tutti gli 85 passi (+0..+84 h); `--first-step` e `-n` (0 = fino all'ultimo passo) scelgono un
+intervallo. Il nome del file resta tempo valido + 2 h (convenzione operativa). Con `--all` conviene
+`--time-mode valid`: la modalità `r` ha senso solo con i passi 11..82 dello script operativo.

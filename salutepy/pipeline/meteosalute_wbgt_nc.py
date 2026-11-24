@@ -65,11 +65,13 @@ def crea_netcdf(grib, outdir="esempio", first_step=11, n_files=72, time_mode="r"
     if verbose:
         print(f"GRIB aperto in {time.perf_counter() - t_start:.1f} s: run {run}, "
               f"{ds.sizes.get('valid_time', 1)} passi, griglia {ds.sizes['latitude']}x{ds.sizes['longitude']}")
+    if not n_files:
+        n_files = ds.sizes.get("valid_time", 1) - (first_step - 1)
     files = []
     for i in range(1, n_files + 1):
         t0 = time.perf_counter()
         valid = run + np.timedelta64(first_step - 1 + i - 1, "h")
-        label = run_day + np.timedelta64(1, "D") + np.timedelta64(i - 1, "h")      # nome come in R
+        label = run_day + np.timedelta64(1, "D") + np.timedelta64(first_step - 11 + i - 1, "h")  # = valido + 2 h      # nome come in R
         out = outdir / f"{prefix}{label.astype(object):%Y%m%d%H}.nc"
         w = wbgt_from_grib(ds, valid_time=valid, time_mode=time_mode, workers=workers,
                            r_first_step=first_step).isel(valid_time=0)
@@ -121,11 +123,14 @@ def main(argv=None):
     ap.add_argument("grib")
     ap.add_argument("-d", "--outdir", default="esempio")
     ap.add_argument("-w", "--workers", type=int)
-    ap.add_argument("-n", "--n-files", type=int, default=72)
+    ap.add_argument("-n", "--n-files", type=int, default=72, help="numero di file (0 = fino all'ultimo passo)")
+    ap.add_argument("--all", action="store_true", help="tutte le ore del GRIB (= --first-step 1 -n 0)")
     ap.add_argument("--first-step", type=int, default=11)
     ap.add_argument("--time-mode", default="r", choices=["r", "valid"])
     ap.add_argument("--compress", action="store_true", help="compressione zlib (file più piccoli)")
     a = ap.parse_args(argv)
+    if a.all:
+        a.first_step, a.n_files = 1, 0
     crea_netcdf(a.grib, a.outdir, a.first_step, a.n_files, a.time_mode, a.workers, a.compress)
     return 0
 
