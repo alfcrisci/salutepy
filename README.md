@@ -466,3 +466,18 @@ python -m salutepy.pipeline.meteosalute_nc 2026112312_mol01gfs.grb2 -d esempio -
 `--all` elabora tutti gli 85 passi (+0..+84 h); `--first-step` e `-n` (0 = fino all'ultimo passo) scelgono un
 intervallo. Il nome del file resta tempo valido + 2 h (convenzione operativa). Con `--all` conviene
 `--time-mode valid`: la modalità `r` ha senso solo con i passi 11..82 dello script operativo.
+
+## Indici da GeoTIFF senza data e ora (`raster/indici_tif.py`)
+
+UTCI, PET, WBGT al sole e all'ombra, Tmrt, Tg e le sei perdite di tempo di lavoro (TI-WTL e TWTL da WBGT
+sole, WBGT ombra e temperatura dell'aria) da GeoTIFF di temperatura (degC), umidità relativa (%), vento (m/s)
+e radiazione globale (W/m2). Al posto di data/ora si dà l'altezza del sole in gradi (GeoTIFF o numero):
+
+```
+python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --wind ws10.tif --rad glob.tif --elev 55 -o indici
+```
+
+Un GeoTIFF per indice nella cartella `-o`, stessa griglia degli ingressi (più bande = più ore, nello stesso
+ordine). Opzioni: `--wind-height` (quota del vento, default 10 m: UTCI a 10 m, WBGT a 2 m, PET a 1.1 m),
+`--tmrt globe|solar`, `--globe-diam`, `--pair`, `--indici utci,pet,...`, `-w`. Il WBGT con l'elevazione data
+coincide con `wbgt_liljegren` con data/ora a parità di angolo zenitale (test).

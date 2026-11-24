@@ -392,6 +392,49 @@ def wbgt_liljegren(tas, dewp, wind, radiation, dates, lon, lat, tolerance=1e-4, 
     return {"data": w.reshape(shape), "Tnwb": nw.reshape(shape), "Tg": g.reshape(shape)}
 
 
+@njit(parallel=True, cache=True)
+def _liljegren_elev_flat(tas, dewp, wind, radiation, sunelev, pair, min_speed, prop_direct, alb_sfc, tol,
+                         out_wbgt, out_tg, out_tnwb):
+    for i in prange(tas.size):
+        t = tas[i]
+        d = dewp[i]
+        w = wind[i]
+        r = radiation[i]
+        e = sunelev[i]
+        if math.isnan(t) or math.isnan(d) or math.isnan(w) or math.isnan(r) or math.isnan(e):
+            out_wbgt[i] = math.nan
+            out_tg[i] = math.nan
+            out_tnwb[i] = math.nan
+            continue
+        if r < 0:
+            r = 0.0
+        if w < 0:
+            w = 0.0
+        if (d - t) > tol:
+            d = t
+        zen_deg = 90.0 - e
+        tg, tnwb = liljegren_point(t, d, w, r, math.pi * zen_deg / 180, pair, min_speed, prop_direct, alb_sfc, tol)
+        out_tg[i] = tg
+        out_tnwb[i] = tnwb
+        out_wbgt[i] = 0.7 * tnwb + 0.2 * tg + 0.1 * t
+
+
+def wbgt_liljegren_elev(tas, dewp, wind, radiation, sunelev, tolerance=1e-4, pair=1010.0, min_speed=0.1,
+                        prop_direct=0.8, surf_albedo=0.4):
+    """
+    WBGT di Liljegren come ``wbgt_liljegren`` ma con l'altezza del sole (gradi) data direttamente al posto
+    di data/ora e coordinate (zenit = 90 - elevazione). Restituisce data/Tnwb/Tg come ``wbgt_liljegren``.
+    """
+    arrs = np.broadcast_arrays(*(np.asarray(x, dtype=float) for x in (tas, dewp, wind, radiation, sunelev)))
+    shape = arrs[0].shape
+    flat = [np.ascontiguousarray(a, dtype=float).ravel() for a in arrs]
+    n = flat[0].size
+    w, g, nw = np.empty(n), np.empty(n), np.empty(n)
+    _liljegren_elev_flat(*flat, float(pair), float(min_speed), float(prop_direct), float(surf_albedo),
+                         float(tolerance), w, g, nw)
+    return {"data": w.reshape(shape), "Tnwb": nw.reshape(shape), "Tg": g.reshape(shape)}
+
+
 # ---------------------------------------------------------------------------
 # Bernard
 # ---------------------------------------------------------------------------
