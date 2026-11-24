@@ -52,7 +52,7 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
 
     Parameters
     ----------
-    path : file GRIB2 (es. ``2026112312_mol01gfs.grb2``).
+    path : file GRIB2 (es. ``2026112312_mol01gfs.grb2``) oppure Dataset già aperto con ``open_raster``.
     timesteps : (primo, ultimo) passo, contati da 1 come ``cdo -seltimestep,11/83``; None = tutti.
     time_mode : "valid" (ora di validità, default) oppure "r" (come lo script R, vedi il modulo).
     hour : True usa l'ora del dato per l'angolo zenitale; default True con "valid", False con "r".
@@ -71,7 +71,7 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
 
         numba.set_num_threads(min(workers, numba.config.NUMBA_NUM_THREADS))
 
-    ds = open_raster(path)
+    ds = path if isinstance(path, xr.Dataset) else open_raster(path)
     if valid_time is not None:
         ds = ds.sel(valid_time=np.atleast_1d(np.asarray(valid_time, dtype="datetime64[ns]")))
     elif "valid_time" in ds.dims and timesteps is not None:
@@ -116,11 +116,14 @@ def wbgt_from_grib(path, timesteps=(11, 83), time_mode: str = "valid", hour: boo
             "tnwb": (dims, res["Tnwb"], {"units": "degC", "long_name": "temperatura di bulbo umido naturale (Liljegren)"}),
             "ta2m": (dims, t.values, {"units": "degC", "long_name": "temperatura a 2 m"}),
             "wind2m": (dims, wind2m, {"units": "m s-1", "long_name": "vento a 2 m (reducewind del vento a 10 m)"}),
+            "td2m": (dims, td, {"units": "degC", "long_name": "temperatura di rugiada a 2 m"}),
+            "wind10m": (dims, std["wind"].transpose(*dims).values, {"units": "m s-1", "long_name": "vento a 10 m"}),
+            "solar": (dims, solar, {"units": "W m-2", "long_name": "radiazione globale (dswrf)"}),
         },
         coords=coords,
     )
     out.attrs = {
-        "source_file": str(path),
+        "source_file": str(ds.attrs.get("source_file", path)) if isinstance(path, xr.Dataset) else str(path),
         "method": "HeatStress::wbgt.Liljegren (salutepy.indices.wbgt_fast)",
         "time_mode": time_mode,
         "hour": str(hour),

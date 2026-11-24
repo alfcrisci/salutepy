@@ -424,3 +424,15 @@ python -m salutepy.pipeline.verifica_wbgt 2026112312_mol01gfs.grb2 mol01gfs12_20
 
 Dal nome del NetCDF ricava l'indice i dello script R e il passo GRIB (run 12 UTC + 10 + i - 1 ore), ricalcola
 wbgtsun/wbgtsha/tglob e stampa bias, MAE, RMSE, massimo scarto e correlazione; `-o file.nc` salva campi e differenze.
+
+### I 72 NetCDF orari di meteosalute_op_dir_mol01.r (blocco WBGT) (`pipeline/meteosalute_wbgt_nc.py`)
+
+```
+python -m salutepy.pipeline.meteosalute_wbgt_nc 2026112312_mol01gfs.grb2 -d esempio            # come R
+python -m salutepy.pipeline.meteosalute_wbgt_nc 2026112312_mol01gfs.grb2 -d esempio --time-mode valid
+```
+
+Scrive `esempio/mol01gfs12_YYYYMMDDHH.nc` (stessi nomi, dimensioni, tempo e fill -999.9 di R) con
+ta2m, urel, v10m, rcorte, wbgtsun, wbgtsha, tglob, temprad e stampa il tempo per file e totale
+(`-n` numero di file, `-w` thread, `--compress` zlib). In modalità `r` il file 2026112412 coincide con
+quello di R entro 1e-5 degC (temprad 3e-4). Circa 40 s per indicizzare il GRIB + 1.5 s per file su 2 CPU.
