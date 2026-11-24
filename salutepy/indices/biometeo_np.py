@@ -577,3 +577,16 @@ def class_text(classes, index, lang="it"):
     c = _f(classes)
     idx = np.where(np.isnan(c), 0, c).astype(int)
     return labels[idx]
+
+
+def frostime(t, wind):
+    """
+    biometeo.js frostime: tempo (minuti) di comparsa del congelamento della pelle esposta,
+    t in degC (-60..-10), wind in m/s; NaN fuori dal campo di validità (9999 in JS).
+    """
+    t = _f(t)
+    wind = _f(wind)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ft = (-24.5 * (0.667 * wind * 3.6 + 4.8) + 2111.0) * np.power(-t - 4.8, -1.668)
+    ok = (wind <= 100.1) & (wind >= 0.0) & (t <= -10.0) & (t >= -60.0)
+    return np.where(ok, js_round(ft, 1), np.nan)

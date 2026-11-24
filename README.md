@@ -436,3 +436,23 @@ Scrive `esempio/mol01gfs12_YYYYMMDDHH.nc` (stessi nomi, dimensioni, tempo e fill
 ta2m, urel, v10m, rcorte, wbgtsun, wbgtsha, tglob, temprad e stampa il tempo per file e totale
 (`-n` numero di file, `-w` thread, `--compress` zlib). In modalità `r` il file 2026112412 coincide con
 quello di R entro 1e-5 degC (temprad 3e-4). Circa 40 s per indicizzare il GRIB + 1.5 s per file su 2 CPU.
+
+### I NetCDF completi (42 variabili) di meteosalute_op_dir_mol01.r (`pipeline/meteosalute_nc.py`)
+
+```
+python -m salutepy.pipeline.meteosalute_nc 2026112312_mol01gfs.grb2 -d esempio            # come R
+python -m salutepy.pipeline.meteosalute_nc 2026112312_mol01gfs.grb2 -d esempio --time-mode valid -w 8
+```
+
+Tutte le variabili del NetCDF operativo (ta2m, urel, v10m, gust, pmsl, pvap, defsat, csky, pmvsha, clomin,
+clomax, utci, utcisha, utciclasha, stosun, stosha, stoind, temprad, rcorte, stosuncla, stoshacla, utcicla,
+wbgtsha, wbgtsun, tglob, rkcla_*, rkshacla_*, lprod, lprodsha, wbgt*wtl*, airtiwtl, airtwtl, windchill,
+windcla, frostime, thi, lapr), con gli stessi nomi di file, tempo e fill value. `fillrkmoloch02` è incluso
+nel pacchetto (`--fillrk` per usarne un altro). PMV, clomin e clomax sono compilati con numba
+(`indices/comfort_fast.py`, identici a biometeo.js).
+
+In modalità `r` riproduce anche le particolarità dello script operativo: sole alle (i-1) h del giorno del run,
+mrt_globe con 0.15 m, e clomin/clomax con il metabolismo del primo pixel per tutta la griglia (il wrapper R
+di rBiometeo passa `M[0]`). Confronto con `mol01gfs12_2026112412.nc` di R: tutte le variabili entro 0.01
+(arrotondamento a 2 decimali), salvo 14-19 pixel di clomin/clomax (0.1, passo del clo), 1 pixel di classe UTCI
+e 2 di frostime. Circa 8.5 s per file su 2 CPU, dominati da clomin/clomax.

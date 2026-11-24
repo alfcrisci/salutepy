@@ -134,3 +134,39 @@ def sunposition_norefrac(timenow: datetime, lat: float, lon: float) -> dict:
     solar_zen = 90 - el_deg
 
     return {"elevation": el_deg, "azimuth": az_deg, "solarzen": solar_zen}
+
+
+def sunposition_rbiometeo(when, lat, lon):
+    """
+    Elevazione solare (gradi, senza rifrazione) come rBiometeo::sunposition (algoritmo di Michalsky /
+    Astronomical Almanac), usata da meteosalute_op_dir_mol01.r per gli indici di Steadman.
+    ``when`` è un istante UTC (datetime64 o datetime); lat/lon array in gradi.
+    """
+    w = np.datetime64(when, "s").astype(datetime)
+    year, month, day = w.year, w.month, w.day
+    hour = w.hour + w.minute / 60 + w.second / 3600
+    mdays = np.cumsum([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30])
+    day = day + int(mdays[month - 1])
+    if year % 4 == 0 and (year % 400 == 0 or year % 100 != 0) and day >= 60 and not (month == 2 and day == 60):
+        day += 1
+    delta = year - 1949
+    t = 32916.5 + delta * 365 + int(delta / 4) + day + hour / 24 - 51545.0
+    d2r = np.pi / 180
+    mnlong = (280.460 + 0.9856474 * t) % 360
+    mnanom = ((357.528 + 0.9856003 * t) % 360) * d2r
+    eclong = ((mnlong + 1.915 * np.sin(mnanom) + 0.020 * np.sin(2 * mnanom)) % 360) * d2r
+    oblqec = (23.439 - 0.0000004 * t) * d2r
+    num, den = np.cos(oblqec) * np.sin(eclong), np.cos(eclong)
+    ra = np.arctan(num / den)
+    if den < 0:
+        ra += np.pi
+    elif num < 0:
+        ra += 2 * np.pi
+    dec = np.arcsin(np.sin(oblqec) * np.sin(eclong))
+    gmst = (6.697375 + 0.0657098242 * t + hour) % 24
+    lmst = ((gmst + np.asarray(lon, dtype=float) / 15.0) % 24) * 15 * d2r
+    ha = lmst - ra
+    ha = np.where(ha < -np.pi, ha + 2 * np.pi, ha)
+    ha = np.where(ha > np.pi, ha - 2 * np.pi, ha)
+    la = np.asarray(lat, dtype=float) * d2r
+    return np.arcsin(np.sin(dec) * np.sin(la) + np.cos(dec) * np.cos(la) * np.cos(ha)) / d2r

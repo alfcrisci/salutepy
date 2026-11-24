@@ -35,4 +35,4 @@ build-backend = "setuptools.build_meta"
 include = ["salutepy*"]
 
 [tool.setuptools.package-data]
-salutepy = ["gs_scripts/*.gs", "data/*.csv", "data/js/*.js"]
+salutepy = ["gs_scripts/*.gs", "data/*.csv", "data/*.npz", "data/js/*.js"]
