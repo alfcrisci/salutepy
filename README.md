@@ -479,5 +479,5 @@ python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --wind ws10.tif --r
 
 Un GeoTIFF per indice nella cartella `-o`, stessa griglia degli ingressi (più bande = più ore, nello stesso
 ordine). Opzioni: `--wind-height` (quota del vento, default 10 m: UTCI a 10 m, WBGT a 2 m, PET a 1.1 m),
-`--tmrt globe|solar`, `--globe-diam`, `--pair`, `--indici utci,pet,...`, `-w`. Il WBGT con l'elevazione data
+`--tmrt globe|solar`, `--globe-diam` (default 0.15 m, come i NetCDF operativi), `--pair`, `--indici utci,pet,...`, `-w`. Il WBGT con l'elevazione data
 coincide con `wbgt_liljegren` con data/ora a parità di angolo zenitale (test).

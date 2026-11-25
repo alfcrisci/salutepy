@@ -13,7 +13,7 @@ Uso::
 * ``--time-mode r`` (default): come lo script operativo (sole alle 12 UTC del giorno del run,
   tempo del NetCDF = giorno run 00 UTC + (i-1) s, mrt_globe con 150 mm = 0.15 m) -> confrontabile con R.
 * ``--time-mode valid``: come meteosalute_op_dir_mol01_fix.r (tempo valido UTC, hour=TRUE,
-  tempo del NetCDF = tempo valido, mrt_globe con diam=0.05).
+  tempo del NetCDF = tempo valido); mrt_globe sempre con 0.15 m.
 
 Vengono scritti 72 file (passi cdo 11..82, perché il ciclo R salta l'ultimo dei 73 estratti),
 e per ognuno si stampa il tempo impiegato.
@@ -61,7 +61,7 @@ def crea_netcdf(grib, outdir="esempio", first_step=11, n_files=72, time_mode="r"
     run = run_of(grib, ds)
     run_day = run.astype("datetime64[D]").astype("datetime64[s]")
     if diam is None:
-        diam = 0.15 if time_mode == "r" else 0.05     # R operativo: 150 mm = 0.15 m (vecchio biometeo.js in mm)
+        diam = 0.15     # R operativo: 150 mm = 0.15 m (vecchio biometeo.js in mm)
     if verbose:
         print(f"GRIB aperto in {time.perf_counter() - t_start:.1f} s: run {run}, "
               f"{ds.sizes.get('valid_time', 1)} passi, griglia {ds.sizes['latitude']}x{ds.sizes['longitude']}")

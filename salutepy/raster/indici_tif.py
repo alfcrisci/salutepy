@@ -7,8 +7,8 @@ Catena di calcolo (come Meteosalute):
 
 * WBGT al sole: Liljegren et al. (2008) / HeatStress, con zenit = 90 - elevazione, vento a 2 m;
 * temperatura del globo Tg dello stesso calcolo; WBGT all'ombra = 0.7 Tnwb + 0.3 T (Meteosalute);
-* temperatura media radiante: da Tg con ``mrt_globe`` (ISO 7726, globo da 0.05 m come quello di
-  Liljegren; ``--globe-diam 0.15`` come i NetCDF operativi di Meteosalute), oppure ``--tmrt solar`` con
+* temperatura media radiante: da Tg con ``mrt_globe`` (ISO 7726) con diametro 0.15 m come i NetCDF
+  operativi di Meteosalute (``--globe-diam 0.05`` = il globo di Liljegren), oppure ``--tmrt solar`` con
   ``mrt_solar_proj`` (radiazione + elevazione). Le due stime possono differire molto (con sole basso
   mrt_solar_proj resta vicina alla temperatura dell'aria, mrt_globe con il globo piccolo è molto più alta);
 * UTCI (Broede et al. 2012) con vento a 10 m; PET (Hoeppe, VDI 3787) con vento a 1.1 m;
@@ -85,7 +85,7 @@ def _input(value, name, ref=None):
     return a, prof
 
 
-def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25, workers=None, globe_diam=0.05):
+def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25, workers=None, globe_diam=0.15):
     """
     Calcola tutti gli indici su array già letti (si allineano per broadcasting).
     Restituisce un dict nome -> array.
@@ -124,7 +124,7 @@ def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25
 
 
 def indici_da_geotiff(t, rh, wind, rad, elev, outdir="indici", wind_height=10.0, tmrt="globe",
-                      pair=1013.25, indices=None, workers=None, verbose=True, globe_diam=0.05) -> list[Path]:
+                      pair=1013.25, indices=None, workers=None, verbose=True, globe_diam=0.15) -> list[Path]:
     """Legge i GeoTIFF, calcola gli indici e scrive un GeoTIFF per indice in ``outdir``."""
     import rasterio
 
@@ -163,8 +163,8 @@ def main(argv=None):
     ap.add_argument("-o", "--outdir", default="indici")
     ap.add_argument("--wind-height", type=float, default=10.0, help="quota del vento in ingresso (m)")
     ap.add_argument("--tmrt", default="globe", choices=["globe", "solar"])
-    ap.add_argument("--globe-diam", type=float, default=0.05,
-                    help="diametro (m) per mrt_globe: 0.05 = globo di Liljegren; 0.15 = come i NetCDF operativi")
+    ap.add_argument("--globe-diam", type=float, default=0.15,
+                    help="diametro (m) per mrt_globe: 0.15 = come i NetCDF operativi (default); 0.05 = globo di Liljegren")
     ap.add_argument("--pair", type=float, default=1013.25, help="pressione (hPa)")
     ap.add_argument("--indici", help="sottoinsieme, separato da virgole (default tutti)")
     ap.add_argument("-w", "--workers", type=int)

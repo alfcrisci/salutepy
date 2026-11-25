@@ -18,8 +18,8 @@ Uso::
 * mrt_globe con 150 mm (= 0.15 m, come il biometeo.js usato in produzione);
 * clomin/clomax con il metabolismo del primo pixel per tutta la griglia (il wrapper R passa M[0]).
 
-``--time-mode valid`` usa invece il tempo valido UTC per il sole e per il NetCDF, hour=TRUE,
-un globo da 0.05 m (quello di HeatStress) e il metabolismo di ogni pixel per clomin/clomax.
+``--time-mode valid`` usa invece il tempo valido UTC per il sole e per il NetCDF, hour=TRUE
+e il metabolismo di ogni pixel per clomin/clomax (mrt_globe sempre con 0.15 m).
 
 Il file mol01gfs12_2026112412.nc prodotto in R è riprodotto entro 0.01 su tutte le variabili
 (arrotondamenti a 2 decimali), tranne una manciata di pixel sui limiti di classe.
@@ -99,10 +99,9 @@ def compute_step(ds, run, i, time_mode="r", first_step=11, fill=None, workers=No
     rh = R.dewp2hurs(T, TD)
     if time_mode == "r":
         tsun = run_day + np.timedelta64(i - 1, "h") + np.timedelta64(1, "s")
-        diam = 0.15
     else:
         tsun = valid
-        diam = 0.05
+    diam = 0.15  # globo da 150 mm, come i NetCDF operativi
     elev = sunposition_rbiometeo(tsun, f(lat2), f(lon2))
     tglob, wsun, wsha = f(w.tglob), f(w.wbgtsun), f(w.wbgtsha)
     mrt = B.mrt_globe(T, tglob, w2, diam)
