@@ -40,14 +40,56 @@ Every index carries its reference in the code (`salutepy.raster.list_indices()` 
 
 ### Installation
 
-Python ≥ 3.10.
+Python ≥ 3.10. Working in a separate environment is recommended:
+
+```bash
+python -m venv salute-env
+source salute-env/bin/activate          # Windows: salute-env\Scripts\activate
+```
+
+**From GitHub** (requires git):
 
 ```bash
 pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy"
 ```
 
+A given release can be installed by adding its tag, e.g.
+`pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy@v0.3.0"`.
+
+**From the Zenodo archive** (no git needed): download the zip of the release and, in the folder
+where it is, run (use the actual name of the downloaded file):
+
+```bash
+pip install "./salutepy-0.3.0.zip[fast]"
+```
+
+**With conda** (easiest on Windows for ecCodes and rasterio):
+
+```bash
+conda create -n salute -c conda-forge python=3.12 eccodes cfgrib rasterio netcdf4 numba
+conda activate salute
+pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy"
+```
+
 The `fast` extra installs numba, needed for good performance with WBGT, PET, PMV and clothing
-insulation. Reading GRIB files uses `cfgrib`/`ecCodes`, GeoTIFF uses `rasterio`.
+insulation; without it the same functions run in pure Python, much more slowly. Reading GRIB files
+uses `cfgrib`/`ecCodes`, GeoTIFF uses `rasterio`.
+
+**For development** (editable install and tests):
+
+```bash
+git clone https://github.com/alfcrisci/salutepy
+cd salutepy
+pip install -e ".[fast,dev]"
+pytest
+```
+
+**Check the installation:**
+
+```bash
+python -c "import salutepy; print(salutepy.__version__)"
+python -m salutepy.raster.indici_tif --help
+```
 
 ### Quick start
 
@@ -163,14 +205,56 @@ elenca).
 
 ### Installazione
 
-Python ≥ 3.10.
+Python ≥ 3.10. Conviene lavorare in un ambiente separato:
+
+```bash
+python -m venv salute-env
+source salute-env/bin/activate          # Windows: salute-env\Scripts\activate
+```
+
+**Da GitHub** (serve git):
 
 ```bash
 pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy"
 ```
 
+Per installare una versione precisa si aggiunge il suo tag, per esempio
+`pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy@v0.3.0"`.
+
+**Dall'archivio Zenodo** (senza git): scaricate lo zip della versione e, nella cartella in cui si
+trova, lanciate (con il nome effettivo del file scaricato):
+
+```bash
+pip install "./salutepy-0.3.0.zip[fast]"
+```
+
+**Con conda** (il modo più semplice su Windows per ecCodes e rasterio):
+
+```bash
+conda create -n salute -c conda-forge python=3.12 eccodes cfgrib rasterio netcdf4 numba
+conda activate salute
+pip install "salutepy[fast] @ git+https://github.com/alfcrisci/salutepy"
+```
+
 L'opzione `fast` installa numba, necessario per avere buone prestazioni con WBGT, PET, PMV e
-isolamento del vestiario. La lettura dei GRIB usa `cfgrib`/`ecCodes`, i GeoTIFF `rasterio`.
+isolamento del vestiario; senza, le stesse funzioni girano in Python puro, molto più lente. La
+lettura dei GRIB usa `cfgrib`/`ecCodes`, i GeoTIFF `rasterio`.
+
+**Per lo sviluppo** (installazione modificabile e test):
+
+```bash
+git clone https://github.com/alfcrisci/salutepy
+cd salutepy
+pip install -e ".[fast,dev]"
+pytest
+```
+
+**Verifica dell'installazione:**
+
+```bash
+python -c "import salutepy; print(salutepy.__version__)"
+python -m salutepy.raster.indici_tif --help
+```
 
 ### Uso rapido
 
