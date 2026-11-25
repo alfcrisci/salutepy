@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "salutepy: biometeorological indices and the Meteosalute processing chain in Python"
+type: software
+authors:
+  - family-names: Crisci
+    given-names: Alfonso
+    affiliation: "Institute of BioEconomy, National Research Council of Italy (CNR-IBE), Florence, Italy"
+    email: alfonso.crisci@cnr.it
+version: 0.3.0
+date-released: 2026-11-25
+license: GPL-3.0-or-later
+repository-code: "https://github.com/alfcrisci/salutepy"
+abstract: >-
+  salutepy computes human biometeorological and occupational heat-stress indices (UTCI, PET, WBGT,
+  PMV, apparent temperature, NET, THI, heat index, humidex, wind chill, work-time loss) on gridded
+  weather data (GRIB, NetCDF, GeoTIFF) and arrays. It is the Python version of the Meteosalute
+  forecasting chain of CNR-IBE, validated against biometeo.js/rBiometeo, the R package HeatStress
+  and the operational Meteosalute products.
+keywords:
+  - biometeorology
+  - thermal comfort
+  - heat stress
+  - UTCI
+  - PET
+  - WBGT
+  - GRIB
+  - NetCDF
+  - GeoTIFF

@@ -1,8 +1,10 @@
 [project]
 name = "salutepy"
-version = "0.2.0"
-description = "Porting Python della pipeline biometeorologica Meteosalute (CNR-IBE): orchestrazione cdo/NetCDF + indici biometeorologici"
-authors = [{ name = "CNR-IBE" }]
+version = "0.3.0"
+description = "Biometeorological and heat-stress indices on gridded weather data, and the Meteosalute processing chain (CNR-IBE) in Python"
+authors = [{ name = "Alfonso Crisci", email = "alfonso.crisci@cnr.it" }]
+readme = "README.md"
+keywords = ["biometeorology", "thermal comfort", "heat stress", "UTCI", "PET", "WBGT", "GRIB", "NetCDF", "GeoTIFF"]
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 dependencies = [
@@ -19,6 +21,10 @@ dependencies = [
     "natsort>=8.0",
     "eccodes>=1.5",
 ]
+
+[project.urls]
+Homepage = "https://github.com/alfcrisci/salutepy"
+Issues = "https://github.com/alfcrisci/salutepy/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
