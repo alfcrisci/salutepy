@@ -34,7 +34,7 @@ The library:
 | Thermal comfort | UTCI and classes; PET (Höppe / VDI 3787); PMV (ISO 7730) and minimum/maximum clothing insulation; Steadman apparent temperature (sun, shade, indoor) and classes; Normal Effective Temperature (NET); Thom discomfort index (THI); heat index; humidex; wind chill and frostbite time |
 | Heat stress at work | WBGT in the sun and in the shade (Liljegren et al. 2008, as in HeatStress); WBGT of Bernard; simplified WBGT; heat-risk classes; lost productivity and work-time loss (TI-WTL, TWTL; Kjellstrom et al. 2018) |
 | Radiation | mean radiant temperature from globe temperature (ISO 7726) or from global radiation and sun elevation; globe temperature; sun position |
-| Psychrometrics | vapour pressure, saturation deficit, dew point, wet-bulb temperature (Stull) |
+| Psychrometrics | vapour pressure deficit (VPD, in hPa or kPa), vapour pressure, dew point, wet-bulb temperature (Stull) |
 
 Every index carries its reference in the code (`salutepy.raster.list_indices()` prints them).
 
@@ -117,9 +117,14 @@ single value) instead of the date and time:
 python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --wind ws10.tif --rad glob.tif --elev 55 -o indices
 ```
 
-It writes one GeoTIFF per index (UTCI, PET, WBGT sun/shade, mean radiant and globe temperature and
-the six work-time-loss indices) on the input grid; multi-band inputs (e.g. hours) give multi-band
-outputs.
+It writes one GeoTIFF per index (UTCI, PET, WBGT sun/shade, mean radiant and globe temperature, the
+six work-time-loss indices and VPD) on the input grid; multi-band inputs (e.g. hours) give multi-band
+outputs. The vapour pressure deficit needs only temperature and humidity:
+
+```bash
+python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --indici vpd --vpd-unit kPa -o vpd
+python -m salutepy.raster run.grb2 -i vpd --vpd-unit kPa -o vpd.nc
+```
 
 **3. The Meteosalute hourly NetCDF files from a MOLOCH GRIB2 run**
 
@@ -198,7 +203,7 @@ La libreria:
 | Comfort termico | UTCI e classi; PET (Höppe / VDI 3787); PMV (ISO 7730) e isolamento minimo/massimo del vestiario; temperatura apparente di Steadman (sole, ombra, interno) e classi; temperatura effettiva normale (NET); indice di disagio di Thom (THI); heat index; humidex; wind chill e tempo di congelamento |
 | Stress termico al lavoro | WBGT al sole e all'ombra (Liljegren et al. 2008, come in HeatStress); WBGT di Bernard; WBGT semplificato; classi di rischio; perdita di produttività e di tempo di lavoro (TI-WTL, TWTL; Kjellstrom et al. 2018) |
 | Radiazione | temperatura media radiante dalla temperatura del globo (ISO 7726) o da radiazione globale ed elevazione del sole; temperatura del globo; posizione del sole |
-| Psicrometria | pressione di vapore, deficit di saturazione, punto di rugiada, temperatura di bulbo umido (Stull) |
+| Psicrometria | deficit di pressione di vapore (VPD, in hPa o kPa), pressione di vapore, punto di rugiada, temperatura di bulbo umido (Stull) |
 
 Ogni indice ha il suo riferimento bibliografico nel codice (`salutepy.raster.list_indices()` li
 elenca).
@@ -282,9 +287,15 @@ unico) al posto di data e ora:
 python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --wind ws10.tif --rad glob.tif --elev 55 -o indici
 ```
 
-Scrive un GeoTIFF per indice (UTCI, PET, WBGT sole/ombra, temperatura media radiante e del globo e
-le sei perdite di tempo di lavoro) sulla griglia degli ingressi; ingressi a più bande (per esempio
-le ore) danno uscite a più bande.
+Scrive un GeoTIFF per indice (UTCI, PET, WBGT sole/ombra, temperatura media radiante e del globo, le
+sei perdite di tempo di lavoro e il VPD) sulla griglia degli ingressi; ingressi a più bande (per
+esempio le ore) danno uscite a più bande. Il deficit di pressione di vapore richiede solo temperatura
+e umidità:
+
+```bash
+python -m salutepy.raster.indici_tif --t t2m.tif --rh rh.tif --indici vpd --vpd-unit kPa -o vpd
+python -m salutepy.raster run.grb2 -i vpd --vpd-unit kPa -o vpd.nc
+```
 
 **3. I NetCDF orari di Meteosalute da un run MOLOCH in GRIB2**
 

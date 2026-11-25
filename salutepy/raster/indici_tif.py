@@ -13,7 +13,8 @@ Catena di calcolo (come Meteosalute):
   mrt_solar_proj resta vicina alla temperatura dell'aria, mrt_globe con il globo piccolo è molto più alta);
 * UTCI (Broede et al. 2012) con vento a 10 m; PET (Hoeppe, VDI 3787) con vento a 1.1 m;
 * WTL (Kjellstrom et al.): % di tempo perso (TI-WTL) e ore perse (TWTL) da WBGT al sole, all'ombra e
-  dalla temperatura dell'aria.
+  dalla temperatura dell'aria;
+* VPD: deficit di pressione di vapore (deficitsat di biometeo.js, IAPWS), in hPa o kPa (``--vpd-unit``).
 
 Uso::
 
@@ -39,6 +40,7 @@ from ..indices.heatstress_np import tashurs2dewp
 from ..indices.misc import reducewind
 from ..indices.pet import pet_hoppe
 from ..indices.productivity import mean_airTI_WTL, mean_airTWTL, mean_wbgtTI_WTL, mean_wbgtWTL
+from ..indices.psychrometrics import deficitsat
 from ..indices.wbgt_fast import wbgt_liljegren_elev
 
 NODATA = -9999.0
@@ -56,6 +58,7 @@ OUTPUTS = {
     "wbgttwtlsha": ("hours", "TWTL da WBGT all'ombra"),
     "airtiwtl": ("perc", "TI-WTL dalla temperatura dell'aria"),
     "airtwtl": ("hours", "TWTL dalla temperatura dell'aria"),
+    "vpd": ("hPa", "deficit di pressione di vapore (vapour pressure deficit)"),
 }
 
 
@@ -85,7 +88,8 @@ def _input(value, name, ref=None):
     return a, prof
 
 
-def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25, workers=None, globe_diam=0.15):
+def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25, workers=None, globe_diam=0.15,
+            vpd_unit="hPa"):
     """
     Calcola tutti gli indici su array già letti (si allineano per broadcasting).
     Restituisce un dict nome -> array.
@@ -118,31 +122,51 @@ def calcola(t, rh, wind, rad, elev, wind_height=10.0, tmrt="globe", pair=1013.25
         "wbgttiwtlsun": mean_wbgtTI_WTL(wsun), "wbgttwtlsun": mean_wbgtWTL(wsun),
         "wbgttiwtlsha": mean_wbgtTI_WTL(wsha), "wbgttwtlsha": mean_wbgtWTL(wsha),
         "airtiwtl": mean_airTI_WTL(t), "airtwtl": mean_airTWTL(t),
+        "vpd": deficitsat(t, rh) / (10.0 if vpd_unit.lower() == "kpa" else 1.0),
     }
-    nan = np.isnan(t) | np.isnan(rh) | np.isnan(wind) | np.isnan(rad) | np.isnan(elev)
-    return {k: np.where(nan, np.nan, np.asarray(v, dtype=float)) for k, v in out.items()}
+    base = np.isnan(t) | np.isnan(rh)
+    full = base | np.isnan(wind) | np.isnan(rad) | np.isnan(elev)
+    mask = {k: full for k in out}
+    mask["vpd"] = base
+    mask["airtiwtl"] = mask["airtwtl"] = np.isnan(t)
+    return {k: np.where(mask[k], np.nan, np.asarray(v, dtype=float)) for k, v in out.items()}
+
+
+# indici che richiedono solo temperatura (e umidità): calcolabili senza vento, radiazione ed elevazione
+SOLO_T_RH = {"vpd", "airtiwtl", "airtwtl"}
 
 
 def indici_da_geotiff(t, rh, wind, rad, elev, outdir="indici", wind_height=10.0, tmrt="globe",
-                      pair=1013.25, indices=None, workers=None, verbose=True, globe_diam=0.15) -> list[Path]:
+                      pair=1013.25, indices=None, workers=None, verbose=True, globe_diam=0.15,
+                      vpd_unit="hPa") -> list[Path]:
     """Legge i GeoTIFF, calcola gli indici e scrive un GeoTIFF per indice in ``outdir``."""
     import rasterio
 
     t0 = time.perf_counter()
+    indices = list(indices or OUTPUTS)
+    missing = [n for n, v in (("wind", wind), ("rad", rad), ("elev", elev)) if v is None]
+    if missing and set(indices) - SOLO_T_RH:
+        raise ValueError(f"mancano {missing}: senza vento, radiazione ed elevazione si possono calcolare solo "
+                         f"{sorted(SOLO_T_RH)}")
+    wind, rad, elev = (np.nan if v is None else v for v in (wind, rad, elev))
     ta, prof, tr, crs = read_tif(t)
     ref = {"shape": ta.shape[1:], "transform": tr, "crs": crs, "bands": ta.shape[0]}
     arrs = [ta] + [_input(v, n, ref)[0] for v, n in ((rh, "rh"), (wind, "wind"), (rad, "rad"), (elev, "elev"))]
-    res = calcola(*arrs, wind_height=wind_height, tmrt=tmrt, pair=pair, workers=workers, globe_diam=globe_diam)
+    if vpd_unit.lower() not in ("hpa", "kpa"):
+        raise ValueError("vpd_unit: 'hPa' oppure 'kPa'")
+    res = calcola(*arrs, wind_height=wind_height, tmrt=tmrt, pair=pair, workers=workers, globe_diam=globe_diam,
+                  vpd_unit=vpd_unit)
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     prof.update(dtype="float32", nodata=NODATA, count=ta.shape[0], compress="deflate", predictor=3, driver="GTiff")
     files = []
-    for name in indices or OUTPUTS:
+    for name in indices:
         a = np.where(np.isnan(res[name]), NODATA, res[name]).astype("float32")
         out = outdir / f"{name}.tif"
         with rasterio.open(out, "w", **prof) as dst:
             dst.write(a)
-            dst.update_tags(index=name, units=OUTPUTS[name][0], description=OUTPUTS[name][1])
+            units = ("kPa" if vpd_unit.lower() == "kpa" else "hPa") if name == "vpd" else OUTPUTS[name][0]
+            dst.update_tags(index=name, units=units, description=OUTPUTS[name][1])
             for b in range(a.shape[0]):
                 dst.set_band_description(b + 1, f"{name}_{b + 1}" if a.shape[0] > 1 else name)
         files.append(out)
@@ -157,23 +181,27 @@ def main(argv=None):
                                  description="UTCI, PET, WBGT sole/ombra e WTL da GeoTIFF senza data e ora")
     ap.add_argument("--t", required=True, help="temperatura dell'aria (degC), GeoTIFF")
     ap.add_argument("--rh", required=True, help="umidità relativa (%%), GeoTIFF o numero")
-    ap.add_argument("--wind", required=True, help="velocità del vento (m/s), GeoTIFF o numero")
-    ap.add_argument("--rad", required=True, help="radiazione globale (W/m2), GeoTIFF o numero")
-    ap.add_argument("--elev", required=True, help="altezza del sole (gradi), GeoTIFF o numero")
+    ap.add_argument("--wind", help="velocità del vento (m/s), GeoTIFF o numero")
+    ap.add_argument("--rad", help="radiazione globale (W/m2), GeoTIFF o numero")
+    ap.add_argument("--elev", help="altezza del sole (gradi), GeoTIFF o numero (non servono vento, radiazione "
+                    "ed elevazione se si chiedono solo vpd, airtiwtl, airtwtl)")
     ap.add_argument("-o", "--outdir", default="indici")
     ap.add_argument("--wind-height", type=float, default=10.0, help="quota del vento in ingresso (m)")
     ap.add_argument("--tmrt", default="globe", choices=["globe", "solar"])
     ap.add_argument("--globe-diam", type=float, default=0.15,
                     help="diametro (m) per mrt_globe: 0.15 = come i NetCDF operativi (default); 0.05 = globo di Liljegren")
     ap.add_argument("--pair", type=float, default=1013.25, help="pressione (hPa)")
+    ap.add_argument("--vpd-unit", default="hPa", choices=["hPa", "kPa"], help="unità del deficit di pressione di vapore")
     ap.add_argument("--indici", help="sottoinsieme, separato da virgole (default tutti)")
     ap.add_argument("-w", "--workers", type=int)
     a = ap.parse_args(argv)
     indices = a.indici.split(",") if a.indici else None
     if indices and set(indices) - set(OUTPUTS):
         ap.error(f"indici sconosciuti: {sorted(set(indices) - set(OUTPUTS))}; disponibili: {', '.join(OUTPUTS)}")
+    if (a.wind is None or a.rad is None or a.elev is None) and (not indices or set(indices) - SOLO_T_RH):
+        ap.error("--wind, --rad ed --elev sono necessari, salvo con --indici solo tra vpd, airtiwtl, airtwtl")
     indici_da_geotiff(a.t, a.rh, a.wind, a.rad, a.elev, a.outdir, a.wind_height, a.tmrt, a.pair, indices, a.workers,
-                      globe_diam=a.globe_diam)
+                      globe_diam=a.globe_diam, vpd_unit=a.vpd_unit)
     return 0
 
 

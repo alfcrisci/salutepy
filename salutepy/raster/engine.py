@@ -78,9 +78,22 @@ INDICES = {
                            "Mean radiant temperature from solar radiation",
                            "Jendritzky et al. (1990); mrt_solar_proj of biometeo.js", None,
                            {"albedo": 0.3, "emis_sfc": 0.97, "fdir": 0.8}),
+    "vpd": IndexSpec("vpd", ("t", "rh"), "hPa", "Vapour pressure deficit (saturation deficit)",
+                     "IAPWS saturation vapour pressure over water/ice; deficitsat of biometeo.js", None,
+                     {"unit": "hPa"}),
     "sunelev": IndexSpec("sunelev", ("time", "lat", "lon"), "degree", "Solar elevation",
                          "Blanco-Muriel et al. (2001) Solar Energy 70: 431-441"),
 }
+
+
+def vpd_factor(unit: str) -> float:
+    """Divisor from hPa to the requested VPD unit ("hPa" or "kPa")."""
+    u = str(unit).strip().lower()
+    if u == "hpa":
+        return 1.0
+    if u == "kpa":
+        return 10.0
+    raise ValueError("VPD unit must be 'hPa' or 'kPa'")
 
 
 def list_indices() -> list[str]:
@@ -112,6 +125,10 @@ def _kernel(name: str, a: dict, params: dict) -> np.ndarray:
                                   params.get("emis_sfc", 0.97), params.get("fdir", 0.8))
     if name == "sunelev":
         return bnp.sun_elevation(a["time"], a["lat"], a["lon"])
+    if name == "vpd":
+        from ..indices.psychrometrics import deficitsat
+
+        return deficitsat(a["t"], a["rh"]) / vpd_factor(params.get("unit", "hPa"))
     if name in ("swbgt", "wbt_stull", "apparent_temp", "discomfort_index", "effective_temp", "heatindex_hs", "humidex_hs"):
         from ..indices import heatstress_np as hs
 
@@ -281,7 +298,10 @@ def compute(std: xr.Dataset, indices, workers: int | None = None, classes: bool 
     for name in indices:
         spec = INDICES[name]
         da = xr.DataArray(results[name], dims=template.dims, coords=template.coords, name=name)
-        da.attrs = {"units": spec.units, "long_name": spec.long_name, "references": spec.references,
+        units = spec.units
+        if name == "vpd":
+            units = "kPa" if vpd_factor({**spec.params, **params.get(name, {})}["unit"]) == 10.0 else "hPa"
+        da.attrs = {"units": units, "long_name": spec.long_name, "references": spec.references,
                     "source": "salutepy.raster (port of biometeo.js, rBiometeo 0.4)"}
         out[name] = da
         if classes and spec.classes:

@@ -37,6 +37,7 @@ def main(argv=None) -> int:
     ap.add_argument("--no-classes", action="store_true", help="do not write the index classes")
     ap.add_argument("--tiff-units", action="append", default=[], metavar="NAME=UNITS",
                     help="units of a GeoTIFF variable, e.g. t=K (default: degC)")
+    ap.add_argument("--vpd-unit", default="hPa", choices=["hPa", "kPa"], help="unit of the vapour pressure deficit (vpd)")
     args = ap.parse_args(argv)
 
     files = dict(kv.split("=", 1) for kv in args.var)
@@ -57,7 +58,8 @@ def main(argv=None) -> int:
     else:
         ap.error("give an input file or --var files")
     std = standardize(ds, mapping=dict(kv.split("=", 1) for kv in args.map), deaccumulate=args.deaccumulate)
-    out = compute(std, args.indices, workers=args.workers, classes=not args.no_classes, time=args.time)
+    out = compute(std, args.indices, workers=args.workers, classes=not args.no_classes, time=args.time,
+                  params={"vpd": {"unit": args.vpd_unit}})
     outp = Path(args.output)
     if outp.suffix.lower() in (".tif", ".tiff"):
         for v in out.data_vars:

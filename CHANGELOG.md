@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Vapour pressure deficit (`vpd`, hPa or kPa) in `salutepy.raster` and `indici_tif`;
+  `indici_tif` computes `vpd`, `airtiwtl` and `airtwtl` without wind, radiation and sun elevation.
+
 ## 0.3.0 (2026-11-25)
 
 - `raster.indici_tif`: UTCI, PET, WBGT sun/shade, mean radiant and globe temperature and work-time

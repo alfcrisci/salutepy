@@ -53,3 +53,38 @@ def test_geotiff_roundtrip(tmp_path):
             assert d.count == 2 and d.crs.to_epsg() == 4326
         assert got.mask[0, 0, 0]
         np.testing.assert_allclose(got.filled(np.nan), exp[name].astype("float32"), atol=1e-4, equal_nan=True)
+
+
+def test_vpd_units_tif_and_engine(tmp_path):
+    rasterio = pytest.importorskip("rasterio")
+    import xarray as xr
+    from rasterio.transform import from_origin
+
+    from salutepy.indices.psychrometrics import deficitsat
+    from salutepy.raster.engine import compute
+    from salutepy.raster.indici_tif import indici_da_geotiff
+
+    t = np.array([[[20.0, 30.0], [-5.0, 10.0]]])
+    rh = np.array([[[50.0, 40.0], [80.0, 100.0]]])
+    ref = deficitsat(t, rh)
+    np.testing.assert_allclose(ref[0, 0], [11.705, 25.494], atol=1e-3)
+    prof = dict(driver="GTiff", height=2, width=2, count=1, dtype="float32", crs="EPSG:4326",
+                transform=from_origin(10, 45, 0.1, 0.1), nodata=-9999)
+    for k, a in (("t", t), ("rh", rh)):
+        with rasterio.open(tmp_path / f"{k}.tif", "w", **prof) as d:
+            d.write(a.astype("float32"))
+    for unit, div in (("hPa", 1.0), ("kPa", 10.0)):
+        out = tmp_path / unit
+        indici_da_geotiff(tmp_path / "t.tif", tmp_path / "rh.tif", None, None, None, out, indices=["vpd"],
+                          vpd_unit=unit, verbose=False)
+        with rasterio.open(out / "vpd.tif") as d:
+            assert d.tags()["units"] == unit
+            np.testing.assert_allclose(d.read(), ref / div, atol=1e-4)
+    with pytest.raises(ValueError):
+        indici_da_geotiff(tmp_path / "t.tif", tmp_path / "rh.tif", None, None, None, tmp_path / "x", indices=["utci"],
+                          verbose=False)
+    std = xr.Dataset({"t": (("y", "x"), t[0]), "rh": (("y", "x"), rh[0])})
+    for unit, div in (("hPa", 1.0), ("kPa", 10.0)):
+        o = compute(std, ["vpd"], workers=1, params={"vpd": {"unit": unit}})
+        assert o.vpd.attrs["units"] == unit
+        np.testing.assert_allclose(o.vpd.values, ref[0] / div)
